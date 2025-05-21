@@ -1,14 +1,18 @@
-import logo from './logo.svg';
+import React, { useState } from 'react'; 
 import './App.css';
-import { BrowserRouter, Route, Router } from 'react-router-dom';
-import Content from './components/Content';
-import './index.css';
-
+import Content from './components/Content'; 
+import Form from './components/Form';      
 
 function App() {
+  const [showTable, setShowTable] = useState(false);
+
   return (
-    <div className="App">
-     <Content />
+    <div>
+      {showTable ? (
+        <Form goBack={() => setShowTable(false)} />
+      ) : (
+        <Content showDetails={() => setShowTable(true)} />
+      )}
     </div>
   );
 }

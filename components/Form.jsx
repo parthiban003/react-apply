@@ -1,56 +1,126 @@
-import React from 'react'
-import 'bootstrap/dist/css/bootstrap.min.css';
-import $ from 'jquery';
+import React, { useEffect, useState } from 'react';
 
-const Form = () => {
+function UserTable({ goBack }) {
+  const [users, setUsers] = useState([]);
+  const [editUserId, setEditUserId] = useState(null);
+  const [editedUser, setEditedUser] = useState({});
 
-  const table = JSON.parse(localStorage.getItem('user1')) || [];
-  console.log(table);
+  useEffect(() => {
+    fetch('https://682c6773d29df7a95be6e6ee.mockapi.io/user')
+      .then(res => res.json())
+      .then(data => setUsers(data));
+  }, []);
 
-  for (var i=0; i<=table.length; i++){
-    console.log(table[i]);
-    $('#body').append(
-      '<tr>' +
-      '<td>'+table[i].name+'</td>'+
-      '<td>'+table[i].age+'</td>'+
-      '<td>'+table[i].dob+'</td>'+
-      '<td>'+table[i].email+'</td>'+
-      '<td>'+table[i].password+'</td>'+
-      '<td>'+table[i].country+'</td>'+
-      '<td>'+table[i].city+'</td>'+
-      '<td>'+table[i].pincode+'</td>'+
-    );
-  }
+  const handleDelete = (id) => {
+    fetch(`https://682c6773d29df7a95be6e6ee.mockapi.io/user/${id}`, {
+      method: 'DELETE'
+    })
+    .then(() => {
+      setUsers(users.filter(user => user.id !== id));
+    });
+  };
 
-   function add(){
-    window.location.replace('Content');
-   }
+  const handleEditClick = (user) => {
+    setEditUserId(user.id);
+    setEditedUser({ ...user });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditedUser(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = () => {
+    fetch(`https://682c6773d29df7a95be6e6ee.mockapi.io/user/${editUserId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editedUser)
+    })
+    .then(res => res.json())
+    .then(updated => {
+      setUsers(users.map(user => user.id === editUserId ? updated : user));
+      setEditUserId(null);
+      setEditedUser({});
+    });
+  };
+
+  const handleCancel = () => {
+    setEditUserId(null);
+    setEditedUser({});
+  };
 
   return (
-    <div className='col-lg-12'>
-      <table className='table table-striped table-border text-light'>
-        <thead>
-          <tr>
-            <th>NAME</th>
-          <th>AGE</th>
-          <th>DOB</th>
-          <th>E-Mail</th>
-          <th>PASSWORD</th>
-          <th>COUNTRY</th>
-          <th>CITY</th>
-          <th>PINCODE</th>
-          </tr>
-        </thead>
-        <tbody id='body'>
-
-        </tbody>
-      </table>
-      <div className='text-center'>
-        <button className='btn btn-danger fw-bold' onClick={add()}>Add Details</button>
-
+    <div className="container mt-5">
+      <h2 className='text-center mb-4 fw-bold text-primary'>User Details</h2>
+      <div className="text-center mb-4">
+        <button className="btn btn-secondary fw-bold" onClick={goBack} style={{ marginLeft: '100px' }}>Back to Form</button>
+      </div>
+      <div className="table-responsive">
+        <table className="table table-bordered">
+          <thead className="table-light">
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Age</th>
+              <th>DOB</th>
+              <th>Email</th>
+              <th>Gender</th>
+              <th>Country</th>
+              <th>City</th>
+              <th>Pin-Code</th>
+              <th>Address</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user, index) => (
+              <tr key={user.id}>
+                <td>{index + 1}</td>
+                {editUserId === user.id ? (
+                  <>
+                    <td><input name="name" value={editedUser.name} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="age" value={editedUser.age} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="dob" value={editedUser.dob} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="email" value={editedUser.email} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="gender" value={editedUser.gender} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="country" value={editedUser.country} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="city" value={editedUser.city} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="pincode" value={editedUser.pincode} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="address" value={editedUser.address} onChange={handleInputChange} className="form-control" /></td>
+                    <td>
+                      <button className="btn btn-success btn-sm me-1" onClick={handleSave}>Save</button>
+                      <button className="btn btn-warning btn-sm mt-1" onClick={handleCancel}>Cancel</button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td>{user.name}</td>
+                    <td>{user.age}</td>
+                    <td>{user.dob}</td>
+                    <td>{user.email}</td>
+                    <td>{user.gender}</td>
+                    <td>{user.country}</td>
+                    <td>{user.city}</td>
+                    <td>{user.pincode}</td>
+                    <td>{user.address}</td>
+                    <td>
+                      <button className=" btn-primary btn-sm me-1" onClick={() => handleEditClick(user)}>Edit</button>
+                      <button className=" btn-danger btn-sm" onClick={() => handleDelete(user.id)}>Delete</button>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {users.length === 0 && (
+              <tr>
+                <td colSpan="11" className="text-center text-muted">No data found</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
-  )
+  );
 }
 
-export default Form
+export default UserTable;

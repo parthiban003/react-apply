@@ -63,6 +63,7 @@ button.btn {
   font-size: 16px;
   border-radius: 8px;
   transition: all 0.3s ease;
+  margin-right: 10%;
 }
 
 button.btn-danger {
@@ -81,8 +82,9 @@ button.btn-primary {
   border: none;
 }
 
-button.btn-primary:hover {
-  background-color: #0056b3;
+button.btn-light:hover {
+  background-color: #1171d8;
+  color: #fff;
 }
 
 button + button {

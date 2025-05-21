@@ -1,102 +1,195 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const indianCities = ['Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Kolkata', 'Coimbatore'];
+const citiesByCountry = {
+  India: {
+    'Delhi': '110001',
+    'Mumbai': '400001',
+    'Bangalore': '560001',
+    'Chennai': '600001',
+    'Kolkata': '700001',
+    'Hyderabad': '500001',
+    'Pune': '411001',
+    'Ahmedabad': '380001',
+    'Coimbatore': '641001',
+    'Jaipur': '302001',
+  },
+  America: {
+    'New York': '10001',
+    'Los Angeles': '90001',
+    'Chicago': '60601',
+    'Houston': '77001',
+    'Phoenix': '85001',
+    'Philadelphia': '19019',
+    'San Antonio': '78201',
+    'San Diego': '92101',
+    'Dallas': '75201',
+    'San Jose': '95101',
+  },
+  England: {
+    'London': 'EC1A 1BB',
+    'Birmingham': 'B1 1AA',
+    'Manchester': 'M1 1AE',
+    'Leeds': 'LS1 1UR',
+    'Liverpool': 'L1 1JR',
+    'Sheffield': 'S1 1WB',
+    'Bristol': 'BS1 4ST',
+    'Newcastle': 'NE1 4LP',
+    'Nottingham': 'NG1 1AA',
+    'Leicester': 'LE1 1AA',
+  },
+  Afghanistan: {
+    'Kabul': '1001',
+    'Kandahar': '3801',
+    'Herat': '2001',
+    'Mazar-i-Sharif': '1701',
+    'Jalalabad': '2601',
+    'Kunduz': '2501',
+    'Ghazni': '2301',
+    'Bamyan': '2401',
+    'Baghlan': '2201',
+    'Farah': '2101',
+  },
+  Zimbabwe: {
+    'Harare': '00263',
+    'Bulawayo': '00264',
+    'Chitungwiza': '00265',
+    'Mutare': '00266',
+    'Gweru': '00267',
+    'Kwekwe': '00268',
+    'Masvingo': '00269',
+    'Chinhoyi': '00270',
+    'Marondera': '00271',
+    'Norton': '00272',
+  },
+};
 
-function App() {
-  const [form, setForm] = useState({
-    name: '',
-    age: '',
-    dob: '',
-    email: '',
-    password: '',
-    country: '',
-    city: '',
-    pincode: '',
-  });
+const API_URL = 'https://682c6773d29df7a95be6e6ee.mockapi.io/user';
 
+function RegistrationForm({ showDetails }) {
+  const initialForm = {
+    name: '', age: '', dob: '', email: '', gender: '',
+    address: '', country: '', city: '', pincode: ''
+  };
+
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
   const [allCountries, setAllCountries] = useState([]);
   const [filteredCountries, setFilteredCountries] = useState([]);
   const [filteredCities, setFilteredCities] = useState([]);
-  const [showTable, setShowTable] = useState(false);
-  const [users, setUsers] = useState([]);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     fetch('https://restcountries.com/v3.1/all')
       .then(res => res.json())
       .then(data => {
-        const countries = data.map(country => country.name.common);
-        setAllCountries(countries.sort());
+        const countries = data.map(c => c.name.common).sort();
+        setAllCountries(countries);
       });
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
+
+    if (name === 'age') {
+      if (!/^\d*$/.test(value)) return;
+    }
+
     setForm(prev => ({ ...prev, [name]: value }));
 
     if (name === 'country') {
-      const matched = allCountries.filter(c => c.toUpperCase().startsWith(value.toUpperCase()));
-      setFilteredCountries(matched);
+      const matches = allCountries.filter(c => c.toLowerCase().startsWith(value.toLowerCase()));
+      setFilteredCountries(matches);
     }
 
     if (name === 'city') {
-      const matched = indianCities.filter(c => c.toUpperCase().startsWith(value.toUpperCase()));
-      setFilteredCities(matched);
+      const selectedCountry = form.country;
+      const cityList = citiesByCountry[selectedCountry] ? Object.keys(citiesByCountry[selectedCountry]) : [];
+      const matches = cityList.filter(c => c.toLowerCase().startsWith(value.toLowerCase()));
+      setFilteredCities(matches);
     }
+
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSelect = (name, value) => {
-    setForm(prev => ({ ...prev, [name]: value }));
-    if (name === 'country') setFilteredCountries([]);
-    if (name === 'city') setFilteredCities([]);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const isValid = Object.values(form).every(val => val !== '');
-    if (!isValid) {
-      alert('Please fill out all fields.');
-      return;
+    if (name === 'city') {
+      const pin = citiesByCountry[form.country]?.[value] || '';
+      setForm(prev => ({ ...prev, city: value, pincode: pin }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
     }
 
-    const existing = JSON.parse(localStorage.getItem('user1')) || [];
-    const updated = [...existing, form];
-    localStorage.setItem('user1', JSON.stringify(updated));
-    alert('Registered Successfully!');
-    setForm({
-      name: '',
-      age: '',
-      dob: '',
-      email: '',
-      password: '',
-      country: '',
-      city: '',
-      pincode: '',
-    });
+    if (name === 'country') setFilteredCountries([]);
+    if (name === 'city') setFilteredCities([]);
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleShowDetails = () => {
-    const data = JSON.parse(localStorage.getItem('user1')) || [];
-    setUsers(data);
-    setShowTable(true);
+  const validateForm = () => {
+    const newErrors = {};
+    Object.entries(form).forEach(([key, val]) => {
+      if (!val) newErrors[key] = '*This field is required';
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setSubmitted(false);
+    if (!validateForm()) return;
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+
+      if (!response.ok) throw new Error('API Error');
+      setSubmitted(true);
+      setForm(initialForm);
+      setErrors({});
+    } catch (error) {
+      console.error('Error submitting form:', error.message);
+    }
   };
 
   return (
-    
     <form onSubmit={handleSubmit} className='app mt-5' autoComplete='off'>
-      <h1 className='text-success'style={{marginLeft:'110%'}}>Welcome!</h1>
       <div className='container mb-4' style={{ fontFamily: 'Montserrat' }}>
-        <h2 className='fw-bold text-primary'style={{marginBottom:'40px'}}>REGISTRATION FORM</h2>
+        <h2 className='fw-bold text-primary mb-4'>REGISTRATION FORM</h2>
+
+        {submitted && (
+          <div className="alert alert-success fw-bold text-center" role="alert">
+            Registered successfully!
+          </div>
+        )}
+
         <div className='row mt-4 bg-light p-4 rounded'>
           <div className='col-lg-6 col-sm-12'>
             <input type="text" name="name" placeholder="Name" onChange={handleChange} value={form.name} className='form-control mt-3' />
-            <input type="text" name="age" placeholder="Age" onChange={handleChange} value={form.age} className='form-control mt-3' />
+            {errors.name && <small className="text-danger">{errors.name}</small>}
+
             <input type="date" name="dob" onChange={handleChange} value={form.dob} className='form-control mt-3' />
+            {errors.dob && <small className="text-danger">{errors.dob}</small>}
+
+            <input type="text" name="age" placeholder="Age" value={form.age} onChange={handleChange} className='form-control mt-3' />
+            {errors.age && <small className="text-danger">{errors.age}</small>}
+
             <input type="email" name="email" placeholder="E-mail" onChange={handleChange} value={form.email} className='form-control mt-3' />
+            {errors.email && <small className="text-danger">{errors.email}</small>}
+
+            <select name="gender" value={form.gender} onChange={handleChange} className='form-control mt-3'>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            {errors.gender && <small className="text-danger">{errors.gender}</small>}
           </div>
+
           <div className='col-lg-6 col-sm-12'>
-            <input type="password" name="password" placeholder="Password" onChange={handleChange} value={form.password} className='form-control mt-3' />
             <input
               type="text"
               name="country"
@@ -107,14 +200,15 @@ function App() {
               className='form-control mt-3'
             />
             {filteredCountries.length > 0 && (
-              <div className="suggestions-list border bg-white position-relative z-3">
+              <div className="suggestions-list position-relative">
                 {filteredCountries.map((c, i) => (
-                  <div key={i} onClick={() => handleSelect('country', c)} className="suggestion-item p-1 cursor-pointer">
+                  <div key={i} onClick={() => handleSelect('country', c)} className="suggestion-item">
                     {c}
                   </div>
                 ))}
               </div>
             )}
+            {errors.country && <small className="text-danger">{errors.country}</small>}
 
             <input
               type="text"
@@ -122,63 +216,38 @@ function App() {
               placeholder="City"
               onChange={handleChange}
               value={form.city}
-              onFocus={() => setFilteredCities(indianCities)}
-              className=' form-control mt-3 position-relative'
+              onFocus={() => {
+                const cityList = citiesByCountry[form.country] ? Object.keys(citiesByCountry[form.country]) : [];
+                setFilteredCities(cityList);
+              }}
+              className='form-control mt-3'
             />
             {filteredCities.length > 0 && (
-              <div className="suggestions-list border bg-white position-relative">
+              <div className="suggestions-list position-relative">
                 {filteredCities.map((c, i) => (
-                  <div key={i} onClick={() => handleSelect('city', c)} className="suggestion-item p-1 cursor-pointer">
+                  <div key={i} onClick={() => handleSelect('city', c)} className="suggestion-item">
                     {c}
                   </div>
                 ))}
               </div>
             )}
-            <input type="number" name="pincode" placeholder="Pin-Code" onChange={handleChange} value={form.pincode} className='form-control mt-3' />
+            {errors.city && <small className="text-danger">{errors.city}</small>}
+
+            <input type="text" name="pincode" placeholder="Pin-Code" onChange={handleChange} value={form.pincode} className='form-control mt-3' readOnly />
+            {errors.pincode && <small className="text-danger">{errors.pincode}</small>}
+
+            <textarea name="address" placeholder="Address" onChange={handleChange} value={form.address} className='form-control mt-3' rows={3} />
+            {errors.address && <small className="text-danger">{errors.address}</small>}
           </div>
         </div>
 
         <div className='text-center mt-4'>
           <button type="submit" className="btn btn-primary fw-bold me-3">Submit</button>
-          <button type="button" className="btn btn-outline-secondary fw-bold" onClick={handleShowDetails}>Show Details</button>
+          <button type="button" className="btn btn-light fw-bold" onClick={showDetails}>Show Details</button>
         </div>
-
-        {showTable && users.length > 0 && (
-          <div className='mt-5'>
-            <h4 className='text-dark text-center mb-4'>User Details</h4>
-            <table className='table table-striped table-bordered bg-white'>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Age</th>
-                  <th>DOB</th>
-                  <th>Email</th>
-                  <th>Password</th>
-                  <th>Country</th>
-                  <th>City</th>
-                  <th>Pincode</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, i) => (
-                  <tr key={i}>
-                    <td>{user.name}</td>
-                    <td>{user.age}</td>
-                    <td>{user.dob}</td>
-                    <td>{user.email}</td>
-                    <td>{user.password}</td>
-                    <td>{user.country}</td>
-                    <td>{user.city}</td>
-                    <td>{user.pincode}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </form>
   );
 }
 
-export default App;
+export default RegistrationForm;
