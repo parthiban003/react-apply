@@ -53,7 +53,7 @@ function UserTable({ goBack }) {
     <div className="container mt-5">
       <h2 className='text-center mb-4 fw-bold text-primary'>User Details</h2>
       <div className="text-center mb-4">
-        <button className="btn btn-secondary fw-bold" onClick={goBack} style={{ marginLeft: '100px' }}>Back to Form</button>
+        <button className="btn btn-secondary fw-bold" onClick={goBack} style={{ marginLeft: '110px' }}>Back to Form</button>
       </div>
       <div className="table-responsive">
         <table className="table table-bordered">

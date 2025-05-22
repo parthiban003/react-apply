@@ -3,7 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const citiesByCountry = {
   India: {
-    'Delhi': '110001',
+    'Madurai': '625001',
     'Mumbai': '400001',
     'Bangalore': '560001',
     'Chennai': '600001',
@@ -64,18 +64,27 @@ const citiesByCountry = {
   },
 };
 
+const statesByCountry = {
+  India: ['Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'West Bengal', 'Telangana', 'Gujarat', 'Rajasthan'],
+  America: ['New York', 'California', 'Illinois', 'Texas', 'Arizona', 'Pennsylvania'],
+  England: ['Greater London', 'West Midlands', 'Greater Manchester', 'West Yorkshire'],
+  Afghanistan: ['Kabul', 'Herat', 'Kandahar', 'Balkh'],
+  Zimbabwe: ['Harare', 'Bulawayo', 'Manicaland', 'Mashonaland'],
+};
+
 const API_URL = 'https://682c6773d29df7a95be6e6ee.mockapi.io/user';
 
 function RegistrationForm({ showDetails }) {
   const initialForm = {
     name: '', age: '', dob: '', email: '', gender: '',
-    address: '', country: '', city: '', pincode: ''
+    address: '', country: '', state: '', city: '', pincode: ''
   };
 
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [allCountries, setAllCountries] = useState([]);
   const [filteredCountries, setFilteredCountries] = useState([]);
+  const [filteredStates, setFilteredStates] = useState([]);
   const [filteredCities, setFilteredCities] = useState([]);
   const [submitted, setSubmitted] = useState(false);
 
@@ -84,55 +93,95 @@ function RegistrationForm({ showDetails }) {
       .then(res => res.json())
       .then(data => {
         const countries = data.map(c => c.name.common).sort();
+        countries.push('America', 'England');
         setAllCountries(countries);
       });
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
+  const handleChange = (e) => {
+  const { name, value } = e.target;
+  if (name === 'age' && !/^\d*$/.test(value)) return;
 
-    if (name === 'age') {
-      if (!/^\d*$/.test(value)) return;
-    }
+  setForm(prev => ({ ...prev, [name]: value }));
+  setErrors(prev => ({ ...prev, [name]: '' }));
+  setSubmitted(false); 
 
-    setForm(prev => ({ ...prev, [name]: value }));
+  if (name === 'country') {
+    const matchedCountries = allCountries.filter(c =>
+      c.toLowerCase().startsWith(value.toLowerCase())
+    );
+    setFilteredCountries(matchedCountries);
+    setFilteredStates([]);
+    setFilteredCities([]);
+    setForm(prev => ({
+      ...prev,
+      state: '',
+      city: '',
+      pincode: '',
+    }));
+  }
 
-    if (name === 'country') {
-      const matches = allCountries.filter(c => c.toLowerCase().startsWith(value.toLowerCase()));
-      setFilteredCountries(matches);
-    }
+  if (name === 'state') {
+    const stateList = statesByCountry[form.country] || [];
+    const matchedStates = stateList.filter(s =>
+      s.toLowerCase().startsWith(value.toLowerCase())
+    );
+    setFilteredStates(matchedStates);
+  }
 
-    if (name === 'city') {
-      const selectedCountry = form.country;
-      const cityList = citiesByCountry[selectedCountry] ? Object.keys(citiesByCountry[selectedCountry]) : [];
-      const matches = cityList.filter(c => c.toLowerCase().startsWith(value.toLowerCase()));
-      setFilteredCities(matches);
-    }
+  if (name === 'city') {
+    const cityList = citiesByCountry[form.country]
+      ? Object.keys(citiesByCountry[form.country])
+      : [];
+    const matchedCities = cityList.filter(c =>
+      c.toLowerCase().startsWith(value.toLowerCase())
+    );
+    setFilteredCities(matchedCities);
+  }
+};
 
-    setErrors(prev => ({ ...prev, [name]: '' }));
-  };
 
   const handleSelect = (name, value) => {
     if (name === 'city') {
       const pin = citiesByCountry[form.country]?.[value] || '';
       setForm(prev => ({ ...prev, city: value, pincode: pin }));
+      setFilteredCities([]);
+    } else if (name === 'state') {
+      setForm(prev => ({ ...prev, state: value }));
+      setFilteredStates([]);
+    } else if (name === 'country') {
+      const countryStates = statesByCountry[value] || [];
+      const cityList = citiesByCountry[value]
+        ? Object.keys(citiesByCountry[value])
+        : [];
+      setForm(prev => ({
+        ...prev,
+        country: value,
+        state: '',
+        city: '',
+        pincode: ''
+      }));
+      setFilteredCountries([]);
+      setFilteredStates(countryStates);
+      setFilteredCities(cityList);
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
     }
 
-    if (name === 'country') setFilteredCountries([]);
-    if (name === 'city') setFilteredCities([]);
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    Object.entries(form).forEach(([key, val]) => {
-      if (!val) newErrors[key] = '*This field is required';
-    });
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const newErrors = {};
+  Object.entries(form).forEach(([key, val]) => {
+    if (!val) {
+      const label = key.charAt(0).toUpperCase() + key.slice(1);
+      newErrors[key] = `${label} is required`;
+    }
+  });
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -156,17 +205,11 @@ function RegistrationForm({ showDetails }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className='app mt-5' autoComplete='off'>
+    <form onSubmit={handleSubmit} className='app mt-4' autoComplete='off'>
       <div className='container mb-4' style={{ fontFamily: 'Montserrat' }}>
-        <h2 className='fw-bold text-primary mb-4'>REGISTRATION FORM</h2>
+        <h2 className='fw-bold text-primary'>REGISTRATION FORM</h2>
 
-        {submitted && (
-          <div className="alert alert-success fw-bold text-center" role="alert">
-            Registered successfully!
-          </div>
-        )}
-
-        <div className='row mt-4 bg-light p-4 rounded'>
+        <div className='row mt-4 bg-light p-4 rounded'style={{marginLeft:'40px'}}>
           <div className='col-lg-6 col-sm-12'>
             <input type="text" name="name" placeholder="Name" onChange={handleChange} value={form.name} className='form-control mt-3' />
             {errors.name && <small className="text-danger">{errors.name}</small>}
@@ -212,6 +255,30 @@ function RegistrationForm({ showDetails }) {
 
             <input
               type="text"
+              name="state"
+              placeholder="State"
+              onChange={handleChange}
+              value={form.state}
+              onFocus={() => {
+                if (form.country && statesByCountry[form.country]) {
+                  setFilteredStates(statesByCountry[form.country]);
+                }
+              }}
+              className='form-control mt-3'
+            />
+            {filteredStates.length > 0 && (
+              <div className="suggestions-list position-relative">
+                {filteredStates.map((s, i) => (
+                  <div key={i} onClick={() => handleSelect('state', s)} className="suggestion-item">
+                    {s}
+                  </div>
+                ))}
+              </div>
+            )}
+            {errors.state && <small className="text-danger">{errors.state}</small>}
+
+            <input
+              type="text"
               name="city"
               placeholder="City"
               onChange={handleChange}
@@ -233,7 +300,7 @@ function RegistrationForm({ showDetails }) {
             )}
             {errors.city && <small className="text-danger">{errors.city}</small>}
 
-            <input type="text" name="pincode" placeholder="Pin-Code" onChange={handleChange} value={form.pincode} className='form-control mt-3' readOnly />
+            <input type="text" name="pincode" placeholder="Pin-Code" onChange={handleChange} value={form.pincode} className='form-control mt-3' />
             {errors.pincode && <small className="text-danger">{errors.pincode}</small>}
 
             <textarea name="address" placeholder="Address" onChange={handleChange} value={form.address} className='form-control mt-3' rows={3} />
@@ -241,7 +308,14 @@ function RegistrationForm({ showDetails }) {
           </div>
         </div>
 
-        <div className='text-center mt-4'>
+        {submitted && (
+          <div className="alert alert-success fw-bold text-center mt-2" role="alert">
+            Registered successfully!
+          </div>
+        )}
+
+
+        <div className='text-center mt-2'style={{marginLeft:'100px'}}>
           <button type="submit" className="btn btn-primary fw-bold me-3">Submit</button>
           <button type="button" className="btn btn-light fw-bold" onClick={showDetails}>Show Details</button>
         </div>
@@ -251,3 +325,5 @@ function RegistrationForm({ showDetails }) {
 }
 
 export default RegistrationForm;
+
+
