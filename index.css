@@ -9,8 +9,8 @@ body {
 }
 
 form.app {
-  max-width: 1000px;
-  width: 100%;
+  max-width: 100%;
+  width: 70%;
   margin: 40px auto;
   padding: 30px;
   background: #ffffff;

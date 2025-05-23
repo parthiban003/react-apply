@@ -50,7 +50,7 @@ function UserTable({ goBack }) {
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-3">
       <h2 className='text-center mb-4 fw-bold text-primary'>User Details</h2>
       <div className="text-center mb-4">
         <button className="btn btn-secondary fw-bold" onClick={goBack} style={{ marginLeft: '110px' }}>Back to Form</button>
@@ -66,6 +66,7 @@ function UserTable({ goBack }) {
               <th>Email</th>
               <th>Gender</th>
               <th>Country</th>
+              <th>State</th>
               <th>City</th>
               <th>Pin-Code</th>
               <th>Address</th>
@@ -84,12 +85,13 @@ function UserTable({ goBack }) {
                     <td><input name="email" value={editedUser.email} onChange={handleInputChange} className="form-control" /></td>
                     <td><input name="gender" value={editedUser.gender} onChange={handleInputChange} className="form-control" /></td>
                     <td><input name="country" value={editedUser.country} onChange={handleInputChange} className="form-control" /></td>
+                    <td><input name="country" value={editedUser.state} onChange={handleInputChange} className="form-control" /></td>
                     <td><input name="city" value={editedUser.city} onChange={handleInputChange} className="form-control" /></td>
                     <td><input name="pincode" value={editedUser.pincode} onChange={handleInputChange} className="form-control" /></td>
                     <td><input name="address" value={editedUser.address} onChange={handleInputChange} className="form-control" /></td>
                     <td>
-                      <button className="btn btn-success btn-sm me-1" onClick={handleSave}>Save</button>
-                      <button className="btn btn-warning btn-sm mt-1" onClick={handleCancel}>Cancel</button>
+                      <button className="btn bg-success btn-sm me-1" onClick={handleSave}>Save</button>
+                      <button className="btn bg-warning btn-sm mt-1" onClick={handleCancel}>Cancel</button>
                     </td>
                   </>
                 ) : (
@@ -100,6 +102,7 @@ function UserTable({ goBack }) {
                     <td>{user.email}</td>
                     <td>{user.gender}</td>
                     <td>{user.country}</td>
+                    <td>{user.state}</td>
                     <td>{user.city}</td>
                     <td>{user.pincode}</td>
                     <td>{user.address}</td>

@@ -1,68 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
-const citiesByCountry = {
-  India: {
-    'Madurai': '625001',
-    'Mumbai': '400001',
-    'Bangalore': '560001',
-    'Chennai': '600001',
-    'Kolkata': '700001',
-    'Hyderabad': '500001',
-    'Pune': '411001',
-    'Ahmedabad': '380001',
-    'Coimbatore': '641001',
-    'Jaipur': '302001',
-  },
-  America: {
-    'New York': '10001',
-    'Los Angeles': '90001',
-    'Chicago': '60601',
-    'Houston': '77001',
-    'Phoenix': '85001',
-    'Philadelphia': '19019',
-    'San Antonio': '78201',
-    'San Diego': '92101',
-    'Dallas': '75201',
-    'San Jose': '95101',
-  },
-  England: {
-    'London': 'EC1A 1BB',
-    'Birmingham': 'B1 1AA',
-    'Manchester': 'M1 1AE',
-    'Leeds': 'LS1 1UR',
-    'Liverpool': 'L1 1JR',
-    'Sheffield': 'S1 1WB',
-    'Bristol': 'BS1 4ST',
-    'Newcastle': 'NE1 4LP',
-    'Nottingham': 'NG1 1AA',
-    'Leicester': 'LE1 1AA',
-  },
-  Afghanistan: {
-    'Kabul': '1001',
-    'Kandahar': '3801',
-    'Herat': '2001',
-    'Mazar-i-Sharif': '1701',
-    'Jalalabad': '2601',
-    'Kunduz': '2501',
-    'Ghazni': '2301',
-    'Bamyan': '2401',
-    'Baghlan': '2201',
-    'Farah': '2101',
-  },
-  Zimbabwe: {
-    'Harare': '00263',
-    'Bulawayo': '00264',
-    'Chitungwiza': '00265',
-    'Mutare': '00266',
-    'Gweru': '00267',
-    'Kwekwe': '00268',
-    'Masvingo': '00269',
-    'Chinhoyi': '00270',
-    'Marondera': '00271',
-    'Norton': '00272',
-  },
-};
 
 const statesByCountry = {
   India: ['Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'West Bengal', 'Telangana', 'Gujarat', 'Rajasthan'],
@@ -74,7 +12,7 @@ const statesByCountry = {
 
 const API_URL = 'https://682c6773d29df7a95be6e6ee.mockapi.io/user';
 
-function RegistrationForm({ showDetails }) {
+function RegisterForm({ showDetails }) {
   const initialForm = {
     name: '', age: '', dob: '', email: '', gender: '',
     address: '', country: '', state: '', city: '', pincode: ''
@@ -99,61 +37,72 @@ function RegistrationForm({ showDetails }) {
   }, []);
 
   const handleChange = (e) => {
-  const { name, value } = e.target;
-  if (name === 'age' && !/^\d*$/.test(value)) return;
+    const { name, value } = e.target;
+    if (name === 'age' && !/^\d*$/.test(value)) return;
 
-  setForm(prev => ({ ...prev, [name]: value }));
-  setErrors(prev => ({ ...prev, [name]: '' }));
-  setSubmitted(false); 
+    setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
+    setSubmitted(false);
 
-  if (name === 'country') {
-    const matchedCountries = allCountries.filter(c =>
-      c.toLowerCase().startsWith(value.toLowerCase())
-    );
-    setFilteredCountries(matchedCountries);
-    setFilteredStates([]);
-    setFilteredCities([]);
-    setForm(prev => ({
-      ...prev,
-      state: '',
-      city: '',
-      pincode: '',
-    }));
-  }
+    if (name === 'dob') {
+      const birthDate = new Date(value);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      setForm(prev => ({ ...prev, age: age.toString() }));
+    }
 
-  if (name === 'state') {
-    const stateList = statesByCountry[form.country] || [];
-    const matchedStates = stateList.filter(s =>
-      s.toLowerCase().startsWith(value.toLowerCase())
-    );
-    setFilteredStates(matchedStates);
-  }
-
-  if (name === 'city') {
-    const cityList = citiesByCountry[form.country]
-      ? Object.keys(citiesByCountry[form.country])
-      : [];
-    const matchedCities = cityList.filter(c =>
-      c.toLowerCase().startsWith(value.toLowerCase())
-    );
-    setFilteredCities(matchedCities);
-  }
-};
-
-
-  const handleSelect = (name, value) => {
-    if (name === 'city') {
-      const pin = citiesByCountry[form.country]?.[value] || '';
-      setForm(prev => ({ ...prev, city: value, pincode: pin }));
+    if (name === 'country') {
+      const matchedCountries = allCountries.filter(c =>
+        c.toLowerCase().startsWith(value.toLowerCase())
+      );
+      setFilteredCountries(matchedCountries);
+      setFilteredStates([]);
       setFilteredCities([]);
+      setForm(prev => ({
+        ...prev,
+        state: '',
+        city: '',
+        pincode: '',
+      }));
+    }
+
+    if (name === 'state') {
+      const stateList = statesByCountry[form.country] || [];
+      const matchedStates = stateList.filter(s =>
+        s.toLowerCase().startsWith(value.toLowerCase())
+      );
+      setFilteredStates(matchedStates);
+    }
+
+    if (name === 'city') {
+      setFilteredCities([value]);
+    }
+  };
+
+  const handleSelect = async (name, value) => {
+    if (name === 'city') {
+      try {
+        const response = await axios.get(`https://api.postalpincode.in/postoffice/${value}`);
+        const data = response.data[0];
+        let pin = '';
+        if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
+          pin = data.PostOffice[0].Pincode;
+        }
+        setForm(prev => ({ ...prev, city: value, pincode: pin }));
+        setFilteredCities([]);
+      } catch (error) {
+        console.error('Error fetching pincode:', error.message);
+        setForm(prev => ({ ...prev, city: value, pincode: '' }));
+      }
     } else if (name === 'state') {
       setForm(prev => ({ ...prev, state: value }));
       setFilteredStates([]);
     } else if (name === 'country') {
       const countryStates = statesByCountry[value] || [];
-      const cityList = citiesByCountry[value]
-        ? Object.keys(citiesByCountry[value])
-        : [];
       setForm(prev => ({
         ...prev,
         country: value,
@@ -163,7 +112,7 @@ function RegistrationForm({ showDetails }) {
       }));
       setFilteredCountries([]);
       setFilteredStates(countryStates);
-      setFilteredCities(cityList);
+      setFilteredCities([]);
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
     }
@@ -172,16 +121,16 @@ function RegistrationForm({ showDetails }) {
   };
 
   const validateForm = () => {
-  const newErrors = {};
-  Object.entries(form).forEach(([key, val]) => {
-    if (!val) {
-      const label = key.charAt(0).toUpperCase() + key.slice(1);
-      newErrors[key] = `${label} is required`;
-    }
-  });
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
+    const newErrors = {};
+    Object.entries(form).forEach(([key, val]) => {
+      if (!val) {
+        const label = key.charAt(0).toUpperCase() + key.slice(1);
+        newErrors[key] = `${label} is required`;
+      }
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -207,9 +156,9 @@ function RegistrationForm({ showDetails }) {
   return (
     <form onSubmit={handleSubmit} className='app mt-4' autoComplete='off'>
       <div className='container mb-4' style={{ fontFamily: 'Montserrat' }}>
-        <h2 className='fw-bold text-primary'>REGISTRATION FORM</h2>
+        <h2 className='fw-bold text-primary'>REGISTER FORM</h2>
 
-        <div className='row mt-4 bg-light p-4 rounded'style={{marginLeft:'40px'}}>
+        <div className='row mt-4 bg-light p-4 rounded' style={{ marginLeft: '40px' }}>
           <div className='col-lg-6 col-sm-12'>
             <input type="text" name="name" placeholder="Name" onChange={handleChange} value={form.name} className='form-control mt-3' />
             {errors.name && <small className="text-danger">{errors.name}</small>}
@@ -217,7 +166,7 @@ function RegistrationForm({ showDetails }) {
             <input type="date" name="dob" onChange={handleChange} value={form.dob} className='form-control mt-3' />
             {errors.dob && <small className="text-danger">{errors.dob}</small>}
 
-            <input type="text" name="age" placeholder="Age" value={form.age} onChange={handleChange} className='form-control mt-3' />
+            <input type="text" name="age" placeholder="Age" value={form.age} onChange={handleChange} className='form-control mt-3' readOnly />
             {errors.age && <small className="text-danger">{errors.age}</small>}
 
             <input type="email" name="email" placeholder="E-mail" onChange={handleChange} value={form.email} className='form-control mt-3' />
@@ -283,10 +232,7 @@ function RegistrationForm({ showDetails }) {
               placeholder="City"
               onChange={handleChange}
               value={form.city}
-              onFocus={() => {
-                const cityList = citiesByCountry[form.country] ? Object.keys(citiesByCountry[form.country]) : [];
-                setFilteredCities(cityList);
-              }}
+              onFocus={() => setFilteredCities([form.city])}
               className='form-control mt-3'
             />
             {filteredCities.length > 0 && (
@@ -314,8 +260,7 @@ function RegistrationForm({ showDetails }) {
           </div>
         )}
 
-
-        <div className='text-center mt-2'style={{marginLeft:'100px'}}>
+        <div className='text-center mt-2' style={{ marginLeft: '100px' }}>
           <button type="submit" className="btn btn-primary fw-bold me-3">Submit</button>
           <button type="button" className="btn btn-light fw-bold" onClick={showDetails}>Show Details</button>
         </div>
@@ -324,6 +269,4 @@ function RegistrationForm({ showDetails }) {
   );
 }
 
-export default RegistrationForm;
-
-
+export default RegisterForm;
